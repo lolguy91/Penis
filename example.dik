@@ -1,0 +1,50 @@
+import Clang.stdio;
+u8  x = 0;
+u16 y = x + 2;
+u32 z = x & ~y;
+
+i8  w = (10 * ( 2 - 1 )) / 6;
+i16 v = x | w;
+i32 t = x % v;
+
+/* this is a comment */
+bool isTrue = true;
+bool isFalse = !isTrue;
+
+if (isTrue)
+{
+    printf("True\n");
+}
+else
+{
+    printf("False\n");
+}
+
+struct BrickByBrick{
+    u8 Suck;
+    u8 My;
+    u8 Dick;
+};
+
+BrickByBrick dik = true;
+while(dik.Dick){
+    printf("Dik\n");
+    dik.Dick--;
+}
+
+float array[2] = {
+    0.2,
+    1.5
+};
+for(u8 i = 0; i < 2; i++){
+    break;
+    continue;
+}
+
+u32 shiit(u8 cum){
+    return (u32)cum + 1;
+}
+
+printf("%i\n",shiit(0));
+
+return y;

@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "tokenizer.h": "c",
+        "parser.h": "c"
+    }
+}
