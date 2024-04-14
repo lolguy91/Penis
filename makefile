@@ -10,6 +10,7 @@ object_files := $(source_files:.c=.o)
 	$(CC) -c -g -o $@ $< $(CFLAGS)
 
 build: $(object_files)
+	@mkdir -p bin
 	$(CC) -o bin/PenisLang $^ $(LDFLAGS)
 
 run : build

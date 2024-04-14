@@ -1,4 +1,4 @@
-import cstdio;
+import cstdio ;
  
 u8  x = 0;
 u16 y = x + 2;
