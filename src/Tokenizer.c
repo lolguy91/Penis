@@ -12,11 +12,15 @@ char* keyTokens[] = {
 "while",
 "for",
 "return",
+"struct",
 "break",
 "continue",
 "u8",
 "u16",
 "u32",
+"i8",
+"i16",
+"i32",
 "bool",
 "float"
 };
@@ -57,166 +61,6 @@ bool keyword_check(struct Token* currToken,char* buffer){
     }
     return false;
 }
-bool misc_check(struct Token* currToken,char* buffer,size_t i){
-    bool val = false;
-    if (buffer[i] == ';')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_SEMI;
-        ((struct Token*)currToken->next)->val.num = 1;
-
-        val = true;
-    }
-    if (buffer[i] == '\n')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_NEWLINE;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    if (buffer[i] == '=')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_EQUALS;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    if (buffer[i] == ',')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_SEPARATOR;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    if (buffer[i] == '.')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_DECIMAL_POINT;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    return val;
-}
-bool logic_check(struct Token* currToken,char* buffer,size_t i){
-    bool val = false;
-    if (buffer[i] == '&')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_AND;
-        ((struct Token*)currToken->next)->val.num = 1;
-
-        val = true;
-    }
-    if (buffer[i] == '|')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_OR;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    if (buffer[i] == '~')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_NOT;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    if (buffer[i] == '!')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_NOPE;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    return val;
-}
-bool arith_check(struct Token* currToken,char* buffer,size_t* i){
-    bool val = false;
-    if (buffer[*i] == '+')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_ADD;
-        ((struct Token*)currToken->next)->val.num = 1;
-
-        val = true;
-    }
-    if (buffer[*i] == '-')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_SUB;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    if (buffer[*i] == '*')
-    {
-        if(buffer[*i+1] == '/'){
-            ((struct Token*)currToken->next)->type = TYPE_MULTILINE_END;
-            ((struct Token*)currToken->next)->val.num = 1;
-            (*i)++;
-            val = true;
-        }else{
-            ((struct Token*)currToken->next)->type = TYPE_MUL;
-            ((struct Token*)currToken->next)->val.num = 1;
-            val = true;
-        }
-    }
-    if (buffer[*i] == '/')
-    {
-        if (buffer[*i + 1] == '*')
-        {
-            ((struct Token*)currToken->next)->type = TYPE_MULTILINE_START;
-            ((struct Token*)currToken->next)->val.num = 1;
-            (*i)++;
-            val = true;
-        }else if(buffer[*i+1] == '/'){
-            ((struct Token*)currToken->next)->type = TYPE_COMMENT;
-            ((struct Token*)currToken->next)->val.num = 1;
-            (*i)++;
-            val = true;
-        }else{
-            ((struct Token*)currToken->next)->type = TYPE_DIV;
-            ((struct Token*)currToken->next)->val.num = 1;
-            val = true;
-        }
-    }
-    if (buffer[*i] == '%')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_MOD;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    return val;
-}
-bool open_and_close_check(struct Token* currToken,char* buffer,size_t i){
-    bool val = false;
-    if (buffer[i] == '(')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_OPEN;
-        ((struct Token*)currToken->next)->val.num = 1;
-
-        val = true;
-    }
-    if (buffer[i] == '{')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_OPEN;
-        ((struct Token*)currToken->next)->val.num =  2;
-        val = true;
-    }
-    if (buffer[i] == '[')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_OPEN;
-        ((struct Token*)currToken->next)->val.num =  3;
-        val = true;
-    }
-    if (buffer[i] == ')')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_CLOSE;
-        ((struct Token*)currToken->next)->val.num = 1;
-        val = true;
-    }
-    if (buffer[i] == '}')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_CLOSE;
-        ((struct Token*)currToken->next)->val.num =  2;
-        val = true;
-    }
-    if (buffer[i] == ']')
-    {
-        ((struct Token*)currToken->next)->type = TYPE_CLOSE;
-        ((struct Token*)currToken->next)->val.num =  3;
-        val = true;
-    }
-    return val;
-}
 
 struct Token* tokenize(char* inbuf)
 {
@@ -229,95 +73,208 @@ struct Token* tokenize(char* inbuf)
     currToken->prev = currToken;
     struct Token* firstToken = currToken->next; 
     struct Token* toFree = currToken;
+
     bool did_hit = false;
 
-    while (strchr(buffer, ' ') || strchr(buffer, '\n'))
+    size_t i = 0;
+    size_t j = 0;
+    while (buffer[i] != '\0')
     {
         did_hit = false;
-        char* nextSpace = strchr(buffer, ' ');
-        if (nextSpace)
-        {
-            *nextSpace = '\0';
-        }
-        if(isdigit(buffer[0])){
-            ((struct Token*)currToken->next)->type = TYPE_INT_LIT;
-            ((struct Token*)currToken->next)->val.num =  atoi(buffer2);
-            goto hit;
-	    }
-
-        if (!keyword_check(currToken, buffer))
-        {
-            size_t last_i = 0;
-            size_t last_i2 = 0;
-            for (size_t i = 0; i < strlen(buffer); i++)
-            {
-                buffer2[i] = buffer[i];
-                buffer2[i + 1] = 0;
-                
-                if (open_and_close_check(currToken,buffer,i) ||
-                        arith_check(currToken,buffer,&i) ||
-                            logic_check(currToken,buffer,i) ||
-                                misc_check(currToken,buffer,i))
-                {
-                    ((struct Token*)currToken->next)->prev = currToken;
-                    currToken = currToken->next;
-                    currToken->next = malloc(sizeof(struct Token));
-                    last_i2 = last_i;
-                    last_i = i;
-                    did_hit = true;
-                }
-                if(last_i == i && last_i2 - last_i > 1 && !isdigit((buffer2 + last_i2)[0])){
-                    char* copy_of_buffer = malloc(strlen(buffer2 + last_i2 + 1)+ 1);
-                    memcpy(copy_of_buffer,buffer2 + last_i2 + 1,strlen(buffer2 + last_i2 + 1));
-                    copy_of_buffer[strlen(buffer2 + last_i2 + 1)] = 0;
-
-                    ((struct Token*)currToken->next)->type = TYPE_IDENT;
-                    ((struct Token*)currToken->next)->val.str = copy_of_buffer;
-                    currToken = currToken->next;
-                    currToken->next = malloc(sizeof(struct Token));
-                    did_hit = true;
-                    continue;
-                }
-                
-                if (keyword_check(currToken,buffer2))
-                {
-                    ((struct Token*)currToken->next)->prev = currToken;
-                    currToken = currToken->next;
-                    currToken->next = malloc(sizeof(struct Token));
-                    last_i2 = last_i;
-                    last_i = i;
-                    //no need to do did_hit on this one
-                }
-            }
-            if (last_i == 0)
-            {
-                char* copy_of_buffer = malloc(strlen(buffer)+ 1);
-                memcpy(copy_of_buffer,buffer,strlen(buffer));
-                copy_of_buffer[strlen(buffer)] = 0;
-
+        if (buffer[i] == ' ' || buffer[i] == '\t')
+        {  
+            if (j != 0  && j <= 1024){
+                char* buf2copy = (char*)malloc(j + 1);
+                memcpy(buf2copy, buffer2, j);
+                buf2copy[j] = '\0';
                 ((struct Token*)currToken->next)->type = TYPE_IDENT;
-                ((struct Token*)currToken->next)->val.str = copy_of_buffer;
+                ((struct Token*)currToken->next)->val.str = buf2copy;
+                j = 0;
+                did_hit = true;
+                goto end;
             }
+            j = 0;
+            i++;
+            continue;
         }
-        hit:
-        if(!did_hit){
+
+        // dont add spaces
+        if(j > 1024){
+            j = 0;
+        }
+        buffer2[j] = buffer[i];
+        buffer2[j + 1] = '\0';
+        j++;
+
+        if(keyword_check(currToken,buffer2)){
+            j = 0;
+            did_hit = true;
+            goto end;   
+        }
+
+        // detect decimal numbers
+        if (isdigit(buffer[i]) && !isdigit(buffer[i + 1])){
+            char* first = buffer + i;
+
+            //magic
+            for (; isdigit(*first); first--);
+            first++;
+
+            ((struct Token*)currToken->next)->type = TYPE_INT_LIT;
+            ((struct Token*)currToken->next)->val.num = atoi(first);
+            j = 0;
+            did_hit = true;
+            goto end;
+        }
+
+        switch(buffer[i])
+        {
+            case ';':
+                ((struct Token*)currToken->next)->type = TYPE_SEMI;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '(':
+                ((struct Token*)currToken->next)->type = TYPE_OPEN;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '{':
+                ((struct Token*)currToken->next)->type = TYPE_OPEN;
+                ((struct Token*)currToken->next)->val.num = 1;
+                did_hit = true;
+                j--;
+                goto end;
+            case '[':
+                ((struct Token*)currToken->next)->type = TYPE_OPEN;
+                ((struct Token*)currToken->next)->val.num = 2;
+                did_hit = true;
+                j--;
+                goto end;
+            case ')':
+                ((struct Token*)currToken->next)->type = TYPE_CLOSE;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '}':
+                ((struct Token*)currToken->next)->type = TYPE_CLOSE;
+                ((struct Token*)currToken->next)->val.num = 1;
+                did_hit = true;
+                j--;
+                goto end;
+            case ']':
+                ((struct Token*)currToken->next)->type = TYPE_CLOSE;
+                ((struct Token*)currToken->next)->val.num = 2;
+                did_hit = true;
+                j--;
+                goto end;
+            case '+':
+                ((struct Token*)currToken->next)->type = TYPE_ADD;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '-':
+                ((struct Token*)currToken->next)->type = TYPE_SUB;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '*':
+                if(buffer[i+1] == '/'){
+                    ((struct Token*)currToken->next)->type = TYPE_MULTILINE_END;
+                    ((struct Token*)currToken->next)->val.num = 0;
+                    i++;
+                    j-=2;
+                    did_hit = true;
+                    goto end;
+                }
+                ((struct Token*)currToken->next)->type = TYPE_MUL;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '/':
+                if(buffer[i+1] == '/'){
+                    ((struct Token*)currToken->next)->type = TYPE_COMMENT;
+                    ((struct Token*)currToken->next)->val.num = 0;
+                    i++;
+                    j-=2;
+                    did_hit = true;
+                    goto end;
+                } else if (buffer[i+1] == '*'){
+                    ((struct Token*)currToken->next)->type = TYPE_MULTILINE_START;
+                    ((struct Token*)currToken->next)->val.num = 0;
+                    i++;
+                    j-=2;
+                    did_hit = true;
+                    goto end;
+                }
+                ((struct Token*)currToken->next)->type = TYPE_DIV;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '%':
+                ((struct Token*)currToken->next)->type = TYPE_MOD;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '&':
+                ((struct Token*)currToken->next)->type = TYPE_AND;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '|':
+                ((struct Token*)currToken->next)->type = TYPE_OR;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '!':
+                ((struct Token*)currToken->next)->type = TYPE_NOT;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '=':
+                ((struct Token*)currToken->next)->type = TYPE_EQUALS;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '.':
+                ((struct Token*)currToken->next)->type = TYPE_DECIMAL_POINT;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                j--;
+                goto end;
+            case '\n':
+                ((struct Token*)currToken->next)->type = TYPE_NEWLINE;
+                ((struct Token*)currToken->next)->val.num = 0;
+                did_hit = true;
+                if(buffer[i] != '\0'){
+                    j = 0;
+                }
+                goto end;
+        }
+        end:
+        if(did_hit){
             ((struct Token*)currToken->next)->prev = currToken;
             currToken = currToken->next;
             currToken->next = malloc(sizeof(struct Token));
         }
-
-        if (nextSpace)
-        {
-            buffer = nextSpace + 1;
-        }
-        else
-        {
-            buffer = buffer + strlen(buffer);
-        }
+        i++;
     }
     free(buffer2);
     free(toFree);
+    free(currToken->next);
     currToken->next = NULL;
-
+    
 return firstToken;
 }
