@@ -28,6 +28,23 @@
 #define TYPE_MULTILINE_START  21
 #define TYPE_MULTILINE_END    22
 
+#define KW_IF                 0
+#define KW_IMPORT             1
+#define KW_ELSE               2
+#define KW_WHILE              3
+#define KW_FOR                4
+#define KW_RETURN             5
+#define KW_STRUCT             6
+#define KW_BREAK              7
+#define KW_CONTINUE           8
+#define KW_U8                 9
+#define KW_U16                10
+#define KW_U32                11
+#define KW_I8                 12
+#define KW_I16                13
+#define KW_I32                14
+#define KW_BOOL               15
+#define KW_FLOAT              16
 
 struct Token{
     void* prev;
