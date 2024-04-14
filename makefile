@@ -1,6 +1,6 @@
 CC=clang
-CFLAGS=-Isrc
-LDFLAGS=
+CFLAGS=-Isrc -fsanitize=address -fsanitize=undefined -Wall -Werror 
+LDFLAGS= -fsanitize=address -fsanitize=undefined
 source_files := $(wildcard src/*.c) $(wildcard src/*/*.c) $(wildcard src/*/*/*.c) $(wildcard src/*/*/*/*.c) $(wildcard src/*/*/*/*/*.c) $(wildcard src/*/*/*/*/*/*.c)
 header_files := $(wildcard src/*.h) $(wildcardsrc/ */*.h) $(wildcard src/*/*/*.h) $(wildcard src/*/*/*/*.h) $(wildcard src/*/*/*/*/*.h) $(wildcard src/*/*/*/*/*/*.h)
 
@@ -14,3 +14,7 @@ build: $(object_files)
 
 run : build
 	./bin/PenisLang example.dik
+
+clean:
+	rm -f bin/*
+	rm -f $(object_files)

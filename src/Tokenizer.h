@@ -23,14 +23,16 @@
 #define TYPE_NOPE             16
 #define TYPE_SEPARATOR        17
 #define TYPE_DECIMAL_POINT    18
-#define TYPE_MULTILINE_START  20
-#define TYPE_MULTILINE_END    21
+#define TYPE_NEWLINE          19
+#define TYPE_COMMENT          20
+#define TYPE_MULTILINE_START  21
+#define TYPE_MULTILINE_END    22
 
 
 struct Token{
     void* prev;
 
-    char type;
+    unsigned char type;
     union {
         int num;
         char* str;
@@ -39,7 +41,7 @@ struct Token{
     void* next;
 };
 
-struct Token* tokenize(FILE* fp);
+struct Token* tokenize(char *buffer);
 void initTokenizer();
 extern char* keyTokens[];
 extern char* names[];

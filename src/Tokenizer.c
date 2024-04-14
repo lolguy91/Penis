@@ -7,6 +7,7 @@
 
 char* keyTokens[] = {
 "if",
+"import",   
 "else",
 "while",
 "for",
@@ -39,13 +40,14 @@ char* names[] = {
 "TYPE_NOPE",
 "TYPE_SEPARATOR",
 "TYPE_DECIMAL_POINT",
+"TYPE_NEWLINE",
 "TYPE_COMMENT",
 "TYPE_MULTILINE_START",
 "TYPE_MULTILINE_END"
 };
 
 bool keyword_check(struct Token* currToken,char* buffer){
-    for (int i = 0; i < (sizeof(keyTokens) / sizeof(char*)); i++)
+    for (size_t i = 0; i < (sizeof(keyTokens) / sizeof(char*)); i++)
     {
 	    if(!strcmp(keyTokens[i],buffer)){
             ((struct Token*)currToken->next)->type = TYPE_KEYWORD;
@@ -55,13 +57,19 @@ bool keyword_check(struct Token* currToken,char* buffer){
     }
     return false;
 }
-bool misc_check(struct Token* currToken,char* buffer,int i){
+bool misc_check(struct Token* currToken,char* buffer,size_t i){
     bool val = false;
     if (buffer[i] == ';')
     {
         ((struct Token*)currToken->next)->type = TYPE_SEMI;
         ((struct Token*)currToken->next)->val.num = 1;
 
+        val = true;
+    }
+    if (buffer[i] == '\n')
+    {
+        ((struct Token*)currToken->next)->type = TYPE_NEWLINE;
+        ((struct Token*)currToken->next)->val.num = 1;
         val = true;
     }
     if (buffer[i] == '=')
@@ -84,7 +92,7 @@ bool misc_check(struct Token* currToken,char* buffer,int i){
     }
     return val;
 }
-bool logic_check(struct Token* currToken,char* buffer,int i){
+bool logic_check(struct Token* currToken,char* buffer,size_t i){
     bool val = false;
     if (buffer[i] == '&')
     {
@@ -113,7 +121,7 @@ bool logic_check(struct Token* currToken,char* buffer,int i){
     }
     return val;
 }
-bool arith_check(struct Token* currToken,char* buffer,int* i){
+bool arith_check(struct Token* currToken,char* buffer,size_t* i){
     bool val = false;
     if (buffer[*i] == '+')
     {
@@ -149,6 +157,11 @@ bool arith_check(struct Token* currToken,char* buffer,int* i){
             ((struct Token*)currToken->next)->val.num = 1;
             (*i)++;
             val = true;
+        }else if(buffer[*i+1] == '/'){
+            ((struct Token*)currToken->next)->type = TYPE_COMMENT;
+            ((struct Token*)currToken->next)->val.num = 1;
+            (*i)++;
+            val = true;
         }else{
             ((struct Token*)currToken->next)->type = TYPE_DIV;
             ((struct Token*)currToken->next)->val.num = 1;
@@ -163,7 +176,7 @@ bool arith_check(struct Token* currToken,char* buffer,int* i){
     }
     return val;
 }
-bool open_and_close_check(struct Token* currToken,char* buffer,int i){
+bool open_and_close_check(struct Token* currToken,char* buffer,size_t i){
     bool val = false;
     if (buffer[i] == '(')
     {
@@ -205,47 +218,41 @@ bool open_and_close_check(struct Token* currToken,char* buffer,int i){
     return val;
 }
 
-struct Token* tokenize(FILE* fp)
+struct Token* tokenize(char* inbuf)
 {
-    //create the string buffers
-    char *buffer=malloc(1024);
+
+    char* buffer = inbuf;
     char *buffer2=malloc(1024);
 
-    int fscanout = fscanf(fp,"%s",buffer);
     struct Token* currToken = malloc(sizeof(struct Token));
     currToken->next = malloc(sizeof(struct Token));
     currToken->prev = currToken;
-    struct Token* firstToken = currToken->next;
-    bool dummy_pervention = false;
+    struct Token* firstToken = currToken->next; 
+    struct Token* toFree = currToken;
+    bool did_hit = false;
 
-    while(fscanout != -1){
-        dummy_pervention = false;
-        if(!keyword_check(currToken,buffer)){
-            int imod = 0;
+    while (strchr(buffer, ' ') || strchr(buffer, '\n'))
+    {
+        did_hit = false;
+        char* nextSpace = strchr(buffer, ' ');
+        if (nextSpace)
+        {
+            *nextSpace = '\0';
+        }
+        if(isdigit(buffer[0])){
+            ((struct Token*)currToken->next)->type = TYPE_INT_LIT;
+            ((struct Token*)currToken->next)->val.num =  atoi(buffer2);
+            goto hit;
+	    }
+
+        if (!keyword_check(currToken, buffer))
+        {
+            size_t last_i = 0;
+            size_t last_i2 = 0;
             for (size_t i = 0; i < strlen(buffer); i++)
             {
-                buffer2[i + imod] = buffer[i];
-                buffer2[i + imod + 1] = 0;
-
-                if(isdigit(buffer[i]) && !isdigit(buffer[i+1])){
-                    ((struct Token*)currToken->next)->type = TYPE_INT_LIT;
-                    ((struct Token*)currToken->next)->val.num =  atoi(buffer2);
-
-                    ((struct Token*)currToken->next)->prev = currToken;
-                    currToken = currToken->next;
-                    currToken->next = malloc(sizeof(struct Token));
-                    dummy_pervention = true;
-                    imod -= strlen(buffer2);
-	            }
-
-                if (keyword_check(currToken,buffer2))
-                {
-                    ((struct Token*)currToken->next)->prev = currToken;
-                    currToken = currToken->next;
-                    currToken->next = malloc(sizeof(struct Token));
-                    dummy_pervention = true;
-                    imod -= strlen(buffer2);
-                }
+                buffer2[i] = buffer[i];
+                buffer2[i + 1] = 0;
                 
                 if (open_and_close_check(currToken,buffer,i) ||
                         arith_check(currToken,buffer,&i) ||
@@ -255,28 +262,62 @@ struct Token* tokenize(FILE* fp)
                     ((struct Token*)currToken->next)->prev = currToken;
                     currToken = currToken->next;
                     currToken->next = malloc(sizeof(struct Token));
-                    dummy_pervention = true;
-                    imod--;
+                    last_i2 = last_i;
+                    last_i = i;
+                    did_hit = true;
+                }
+                if(last_i == i && last_i2 - last_i > 1 && !isdigit((buffer2 + last_i2)[0])){
+                    char* copy_of_buffer = malloc(strlen(buffer2 + last_i2 + 1)+ 1);
+                    memcpy(copy_of_buffer,buffer2 + last_i2 + 1,strlen(buffer2 + last_i2 + 1));
+                    copy_of_buffer[strlen(buffer2 + last_i2 + 1)] = 0;
+
+                    ((struct Token*)currToken->next)->type = TYPE_IDENT;
+                    ((struct Token*)currToken->next)->val.str = copy_of_buffer;
+                    currToken = currToken->next;
+                    currToken->next = malloc(sizeof(struct Token));
+                    did_hit = true;
+                    continue;
+                }
+                
+                if (keyword_check(currToken,buffer2))
+                {
+                    ((struct Token*)currToken->next)->prev = currToken;
+                    currToken = currToken->next;
+                    currToken->next = malloc(sizeof(struct Token));
+                    last_i2 = last_i;
+                    last_i = i;
+                    //no need to do did_hit on this one
                 }
             }
-            if(imod == 0){
+            if (last_i == 0)
+            {
                 char* copy_of_buffer = malloc(strlen(buffer)+ 1);
                 memcpy(copy_of_buffer,buffer,strlen(buffer));
                 copy_of_buffer[strlen(buffer)] = 0;
 
                 ((struct Token*)currToken->next)->type = TYPE_IDENT;
                 ((struct Token*)currToken->next)->val.str = copy_of_buffer;
-
             }
         }
-        if(!dummy_pervention){
+        hit:
+        if(!did_hit){
             ((struct Token*)currToken->next)->prev = currToken;
             currToken = currToken->next;
             currToken->next = malloc(sizeof(struct Token));
         }
 
-        fscanout = fscanf(fp,"%s",buffer);
+        if (nextSpace)
+        {
+            buffer = nextSpace + 1;
+        }
+        else
+        {
+            buffer = buffer + strlen(buffer);
+        }
     }
+    free(buffer2);
+    free(toFree);
+    currToken->next = NULL;
 
 return firstToken;
 }
