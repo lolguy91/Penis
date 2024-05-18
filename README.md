@@ -1,4 +1,4 @@
-# JS+QBE rewrite coming whenever Im not lazy
+# Zig+QBE+Keystone rewrite coming soon™
 # Penis
 
 the penis lang
