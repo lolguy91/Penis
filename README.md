@@ -1,4 +1,4 @@
-# Zig+QBE+Keystone rewrite coming soon™
+# NVM, I don't like langdev
 # Penis
 
 the penis lang
